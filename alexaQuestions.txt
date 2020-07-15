@@ -1,0 +1,22 @@
+{quest: 'This person founded Amazon.com', answer: 'jeff bezos', story: 'Amazon was founded by Jeff Bezos in Bellevue, Washington, on July 5, 1994. The company started as an online marketplace for books but expanded to sell electronics, software, video games, apparel, furniture, food, toys, and jewelry. In 2015, Amazon surpassed Walmart as the most valuable retailer in the United States by market capitalization', level: 'easy'}, 
+
+{quest: 'This is the city where Amazon Headquarters is located', answer: 'seattle', story: 'Amazon Headquarters is located in Seattle, Washington', level: 'easy'},
+
+{quest: 'This is what acronym AWS stands for', answer: 'amazon web services', story: 'AWS stands for Amazon Web Services', level: 'easy'},
+
+{quest: 'It is said to always be this day at Amazon', answer: 'day 1', story: 'The Day 1 mentality means that even though Amazon is nearly 25 years old, the company treats every day like it\'s the first day of their new startup', level: 'medium'},
+
+{quest: 'This is the name of a high tech supermarket that allows shoppers to buy groceries without checking out items with a cashier', answer: 'Amazon Go', story: 'Amazon Go stores are equipped with hundreds of cameras that utilize a type of technology similar to that used in self-driving cars. This technology keeps a virtual shopping cart which allows customers to just walk out when they are done shopping. A bill is automatically sent to their Amazon account.', level: 'medium'},
+
+{quest: 'As a cost saving measure in the early days of Amazon, this was used as a desk', answer: 'door', story: 'Cheap doors and sawed off two by fours were used as desks to save money in the early days of Amazon.', level: 'medium'},
+
+{quest: 'At Amazon, teams are generally restricted to the amount of people that could be fed by blank', answer: 'two pizzas', story: 'While Amazon encourages teamwork, project teams are generally capped around 10 people per team - or two pizza teams. This concept was introduced by Jeff Bezos.', level: 'medium'},
+
+{quest: 'Amazon was almost named instead', answer: 'cadabra', story: 'Amazon was almost named Cadabra, which is short for the magic term abracadabra', level: 'hard'},
+
+{quest: 'This is the title of the first book ever sold on Amazon', answer: 'Fluid Concepts and Creative Analogies', story: 'The first book ever sold on Amazon was Fluid Concepts and Creative Analogies, by Douglas Hofstadter.', level: 'hard'},
+
+{quest: 'Amazon.com originally launched with this tagline', answer: 'Earth\'s biggest book store', story: 'One of the reasons Jeff Bezos chose Amazon as the company name was to suggest scale.', level: 'hard'},
+
+
+
