@@ -1,18 +1,22 @@
 const Alexa = require('ask-sdk-core');
 
-const welcomeMessage = `Welcome to the Amazon intern jeopardy game! Would you like to play? `;
+const welcomeMessage = `Welcome to the Amazon intern jeopardy game! How many people are playing? `;
 const startQuizMessage = `Let's get started! `;
 const exitSkillMessage = `Thank you for playing! Come back again soon for new questions! `;
 const helpMessage = `I'm not sure about that, sorry. `;
+const numRounds = 2;
 
 /* CONSTANTS */
 const skillBuilder = Alexa.SkillBuilders.custom();
+const teamColors = [`green`, `blue`, `purple`, `orange`]
 const data = [
-  {quest: `This person founded Amazon.com`, answer: `jeff bezos`, story: `Amazon was founded by Jeff Bezos in Bellevue, Washington, on July 5, 1994. The company started as an online marketplace for books but expanded to sell electronics, software, video games, apparel, furniture, food, toys, and jewelry. In 2015, Amazon surpassed Walmart as the most valuable retailer in the United States by market capitalization`},
-  {quest: `It is said to always be this day at Amazon`, answer: `day 1`, story: `The Day 1 mentality means that even though Amazon is nearly 25 years old, the company treats every day like it’s the first day of their new startup`},
-  {quest: `He is the CEO of Amazon's cloud computing business, Amazon Web Services`, answer: `andy jassy`, story: `In 1997, Jassy joined Amazon as a marketing manager. In 2003, Jassy founded Amazon Web Services, with a team of 57 people`},
-  {quest: `This bear is best`, answer: `black bear`, story: `Bears, Beets, Battlestar Galactica`},
-  {quest: `This is Ron Swanson's favorite form of alchohol`, answer: `whiskey`, story: ``}
+  {quest: `This person founded Amazon.com`, answer: `jeff bezos`, story: ``},
+  {quest: `It is said to always be this day at Amazon`, answer: `day 1`, story: ``},
+  {quest: `He is the CEO of Amazon's cloud computing business, Amazon Web Services`, answer: `andy jassy`, story: ``},
+  {quest: `This bear is best`, answer: `black bear`, story: ``},
+  {quest: `This is Ron Swanson's favorite form of alchohol`, answer: `whiskey`, story: `1`},
+  {quest: `This is Ron Swanson's favorite form of alchohol`, answer: `whiskey`, story: `2`},
+  {quest: `This is Ron Swanson's favorite form of alchohol`, answer: `whiskey`, story: `3`}
 ];
 
 const states = {
@@ -29,13 +33,14 @@ const LaunchRequestHandler = {
   handle(handlerInput) {
     const attributesManager = handlerInput.attributesManager;
     const sessionAttributes = attributesManager.getSessionAttributes();
-    const speechText = getWelcomeMessage(sessionAttributes)
+    const speechText = welcomeMessage
     return handlerInput.responseBuilder
       .speak(speechText)
       .reprompt(helpMessage)
       .getResponse();
   },
 };
+
 
 const QuizHandler = {
     canHandle(handlerInput) {
@@ -46,24 +51,39 @@ const QuizHandler = {
              (request.intent.name === "QuizIntent" || request.intent.name === "AMAZON.StartOverIntent");
     },
     handle(handlerInput) {
-      console.log("Inside QuizHandler - handle");
       const attributes = handlerInput.attributesManager.getSessionAttributes();
       const response = handlerInput.responseBuilder;
+      const numPlayers = handlerInput.requestEnvelope.request.intent.slots.Number.value;
+      
+
       attributes.state = states.QUIZ;
       attributes.counter = 0;
-      attributes.quizScore = 0;
+      attributes.quizScore = [0,0,0,0];
+      attributes.round = 0;
+      attributes.currTeam = 0;
+      attributes.numPlayers = numPlayers;
+
+      var speakOutput = startQuizMessage;
+
+    //Generate reponse specific to num teams, use == to allow for type conversions
+    if (numPlayers == 1){
+        speakOutput += ``;
+    } else if (numPlayers == 2){
+        speakOutput += 'Team ' + teamColors[0] + ` will go first, followed by ` + teamColors[1] + ` . `;
+    } else if (numPlayers == 3){
+        speakOutput += 'Team ' + teamColors[0] + ` will go first, followed by ` + teamColors[1] + `, ` + teamColors[2] + ` . `;
+    } else {
+        speakOutput += 'Team ' + teamColors[0] + ` will go first, followed by ` + teamColors[1] + `, ` + teamColors[2] + `, `+ teamColors[3] + ` . `;
+    }
+
+    var question = askQuestion(handlerInput);
+    speakOutput += question;
+
+    var repromptOutput = question;
   
-      var question = askQuestion(handlerInput);
-      var speakOutput = startQuizMessage + question;
-      var repromptOutput = question;
-  
-      const item = attributes.quizItem;
-      const property = attributes.quizProperty;
-  
-  
-      return response.speak(speakOutput)
-                     .reprompt(repromptOutput)
-                     .getResponse();
+    return response.speak(speakOutput)
+                    .reprompt(repromptOutput)
+                    .getResponse();
     },
   };
 
@@ -84,13 +104,14 @@ const QuizHandler = {
   
       var speakOutput = ``;
       var repromptOutput = ``;
+
       const item = attributes.quizItem;
       const property = attributes.quizProperty;
       const isCorrect = compareSlots(handlerInput.requestEnvelope.request.intent.slots, item.answer);
   
       if (isCorrect) {
         speakOutput = `Nice! `;
-        attributes.quizScore += 1;
+        attributes.quizScore[attributes.currTeam] += 1;
         handlerInput.attributesManager.setSessionAttributes(attributes);
       } else {
         speakOutput = `Darn. `;
@@ -99,20 +120,19 @@ const QuizHandler = {
       speakOutput += getAnswer(item);
       speakOutput += getStory(item);
       var question = ``;
-      //IF YOUR QUESTION COUNT IS LESS THAN 5, WE NEED TO ASK ANOTHER QUESTION.
-      if (attributes.counter < 5) {
-        speakOutput += getCurrentScore(attributes.quizScore, attributes.counter);
+      //question count is less than total number of needed questions, WE NEED TO ASK ANOTHER QUESTION.
+      if (attributes.counter < (numRounds * attributes.numPlayers)) {
         question = askQuestion(handlerInput);
+
         speakOutput += question;
         repromptOutput = question;
-        //attributes.profile.questAsked += 1;
   
         return response.speak(speakOutput)
         .reprompt(repromptOutput)
         .getResponse();
       }
       else {
-        speakOutput += getFinalScore(attributes.quizScore, attributes.counter) + exitSkillMessage;
+        speakOutput += getFinalScore(attributes) + exitSkillMessage;
         return response.speak(speakOutput).getResponse();
       }
     },
@@ -166,83 +186,6 @@ const QuizHandler = {
     },
   };
 
-  /* RESPONSE INTERCEPTORS */
-
-// This interceptor loads our profile from persistent storage into the session
-// attributes.
-const NewSessionRequestInterceptor = {
-    async process(handlerInput) {
-  
-      if (handlerInput.requestEnvelope.session.new) {
-        const attributesManager = handlerInput.attributesManager;
-        let sessionAttributes = attributesManager.getSessionAttributes();
-  
-        const persistentAttributes = await attributesManager.getPersistentAttributes();
-  
-        if (!persistentAttributes.profile) {
-          console.log('Initializing new profile...');
-          sessionAttributes.isNew = true;
-          sessionAttributes.profile = initializeProfile();
-        } else {
-          console.log('Restoring profile from persistent store.');
-          sessionAttributes.isNew = false;
-          sessionAttributes = persistentAttributes;
-        }
-        
-        attributesManager.setSessionAttributes(sessionAttributes);
-      }
-    }
-  };
-
-  // This Response interceptor detects if the skill is going to exit and saves the
-// session attributes into the persistent store.
-const SessionWillEndInterceptor = {
-    async process(handlerInput, responseOutput) {
-  
-      // let shouldEndSession = responseOutput.shouldEndSession;
-      // shouldEndSession = (typeof shouldEndSession == "undefined" ? true : shouldEndSession);
-      const requestType = handlerInput.requestEnvelope.request.type;
-  
-      const ses = (typeof responseOutput.shouldEndSession == "undefined" ? true : responseOutput.shouldEndSession);
-  
-      console.log('responseOutput:', JSON.stringify(responseOutput));
-  
-      if(ses && !responseOutput.directives || requestType === 'SessionEndedRequest') {
-  
-      // if(shouldEndSession || requestType == 'SessionEndedRequest') {
-        console.log('SessionWillEndInterceptor', 'end!');
-        const attributesManager = handlerInput.attributesManager;
-        const sessionAttributes = attributesManager.getSessionAttributes();
-        const persistentAttributes = await attributesManager.getPersistentAttributes();
-        
-        persistentAttributes.profile = sessionAttributes.profile;
-  
-        console.log(JSON.stringify(sessionAttributes));
-  
-        attributesManager.setPersistentAttributes(persistentAttributes);
-        attributesManager.savePersistentAttributes(persistentAttributes);
-      }
-    }
-  };
-
-  function initializeProfile() {
-    return {
-        questAsked: 0
-    };
-  }
-
-// gets the welcome message based upon the context of the skill.
-function getWelcomeMessage(sessionAttributes) {
-
-    let speechText = "";
-  
-    if (sessionAttributes.isNew) {
-        speechText = welcomeMessage;
-    } else {
-        speechText = `Welcome back! Do you want to get started? `;
-    }
-    return speechText;
-}
 
   function compareSlots(slots, value) {
     for (const slot in slots) {
@@ -256,38 +199,49 @@ function getWelcomeMessage(sessionAttributes) {
     return false;
   }
 
-//   function compareSlots(slots, value) {
-//     for (const slot in slots) {
-//       if (Object.prototype.hasOwnProperty.call(slots, slot) && slots[slot].value !== undefined) {
-//             if (slotValue.toString().toLocaleLowerCase() === value.toString().toLocaleLowerCase()) {
-//                 return true;
-//             }
-//       }
-//     }
-//     return false;
-//   }
-
   function askQuestion(handlerInput) {
     console.log("I am in askQuestion()");
     //GET SESSION ATTRIBUTES
     const attributes = handlerInput.attributesManager.getSessionAttributes();
-    //GENERATING THE RANDOM QUESTION FROM DATA
+    //GENERATING THE QUESTION FROM DATA
     const item = data[attributes.counter];
+    var question = ``;
   
     //SET QUESTION DATA TO ATTRIBUTES
     attributes.selectedItemIndex = attributes.counter;
     attributes.quizItem = item;
+
+    //update round
+    if(attributes.counter % attributes.numPlayers == 0){
+        attributes.round += 1; 
+        //only announce round after first round
+        if (attributes.round >= 2) {
+        question += `Onto round ` + attributes.round + `. The questions are harder and worth more points! `
+        }
+    } 
+
+    //update currTeam
+    attributes.currTeam = attributes.counter % attributes.numPlayers;
+
+    //update counter
     attributes.counter += 1;
   
     //SAVE ATTRIBUTES
     handlerInput.attributesManager.setSessionAttributes(attributes);
-  
-    const question = getQuestion(attributes.counter, item);
+
+    //disregard teams colors if just one person
+  if (attributes.numPlayers > 1){
+    question += teamColors[attributes.currTeam] + ` team, here is your ` + attributes.round + `th clue: `
+    question += getQuestion(attributes.counter, item);
+  } else {
+    question = `Here is your ` + attributes.round + `th clue: `
+    question += getQuestion(attributes.counter, item);
+  }
     return question;
   }
 
   function getQuestion(counter, item) { 
-    return `Here is your ${counter}th clue. ${item.quest}. `;
+    return `${item.quest}. `;
   }
 
   function getAnswer(item) {
@@ -298,12 +252,28 @@ function getWelcomeMessage(sessionAttributes) {
     return `Here's a little more information: ${item.story}. `;
   }
 
-  function getCurrentScore(score, counter) {
-    return `Your current score is ${score} out of ${counter}. `;
-  }
+  function getFinalScore(attributes) {
+    //finding winners first
+    var i;
+    var winners = ``;
+    var topScore = 0;
+    for (i = 0; i < attributes.numPlayers; i++) {
+        //Something is wrong here, throws an error
+    //     //found higher score, reset winner array
+    // if(attributes.quizScore[i] > topScore){
+    //     winners = ``;
+    //     winners += attributes.teamColors[i];
+    //     topScore = attributes.quizScore[i];
+    //     //found tie, add winner
+    // } else if (attributes.quizScore[i] == topScore) {
+    //     winners += ` and ` + attributes.teamColors[i];
+    // }
+    }
 
-  function getFinalScore(score, counter) {
-    return `Your final score is ${score} out of ${counter}. `;
+    //making winner string
+    var response = `nice`; //winners + ` won with ` + topScore + ` points. Great job everyone!`
+
+    return response;
   }
 
   function getRandom(min, max) {
@@ -311,18 +281,14 @@ function getWelcomeMessage(sessionAttributes) {
   }
 
 /* LAMBDA SETUP */
+//general flow: skill in invoked, asks how many people, starts asking questions until round limit is reached and then ends
 exports.handler = skillBuilder
   .addRequestHandlers(
     LaunchRequestHandler,
     QuizHandler,
     QuizAnswerHandler,
-    //RepeatHandler,
     ExitHandler,
     SessionEndedRequestHandler
   )
   .addErrorHandlers(ErrorHandler)
-//   .addRequestInterceptors(NewSessionRequestInterceptor)
-//   .addResponseInterceptors(SessionWillEndInterceptor)
-//   .withTableName("triviaTable")
-//   .withAutoCreateTable(true)
   .lambda();
