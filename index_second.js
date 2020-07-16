@@ -5,10 +5,14 @@ const startQuizMessage = `Let's get started! `;
 const exitSkillMessage = `Thank you for playing! Come back again soon for new questions! `;
 const helpMessage = `I'm not sure about that, sorry. `;
 const numRounds = 2;
+const maxPlayers = 4;
 
 /* CONSTANTS */
 const skillBuilder = Alexa.SkillBuilders.custom();
-const teamColors = [`green`, `blue`, `purple`, `orange`]
+//made a var to allow for shuffling at beginning of each game
+var teamColors = [`green`, `blue`, `purple`, `orange`, `gray`, `ivory`, `maroon`, `aquamarine`, `coral`, `crimson`, `khaki`, `magenta`, `plum`, `olive`, `cyan`, `lime`, `silver`, `gold`, `teal`];
+const speechConsCorrect = ['Booya', 'All righty', 'Bam', 'Bazinga', 'Bingo', 'Boom', 'Bravo', 'Cha Ching', 'Cheers', 'Dynomite', 'Hip hip hooray', 'Hurrah', 'Hurray', 'Huzzah', 'Oh dear.  Just kidding.  Hurray', 'Kaboom', 'Kaching', 'Oh snap', 'Phew','Righto', 'Way to go', 'Well done', 'Whee', 'Woo hoo', 'Yay', 'Wowza', 'Yowsa'];
+const speechConsWrong = ['Argh', 'Aw man', 'Blarg', 'Blast', 'Boo', 'Bummer', 'Darn', "D'oh", 'Dun dun dun', 'Eek', 'Honk', 'Le sigh', 'Mamma mia', 'Oh boy', 'Oh dear', 'Oof', 'Ouch', 'Ruh roh', 'Shucks', 'Uh oh', 'Wah wah', 'Whoops a daisy', 'Yikes'];
 const data = [
   {quest: `This person founded Amazon.com`, answer: `jeff bezos`, story: ``},
   {quest: `It is said to always be this day at Amazon`, answer: `day 1`, story: ``},
@@ -53,12 +57,27 @@ const QuizHandler = {
     handle(handlerInput) {
       const attributes = handlerInput.attributesManager.getSessionAttributes();
       const response = handlerInput.responseBuilder;
-      const numPlayers = handlerInput.requestEnvelope.request.intent.slots.Number.value;
+      var numPlayers = handlerInput.requestEnvelope.request.intent.slots.Number.value;
+
+    //Make sure that numPlayers is bounded [1, maxPlayers]
+      if (numPlayers < 1){
+          numPlayers = 1;
+      } else if (numPlayers > maxPlayers){
+          numPlayers = maxPlayers;
+      }
       
 
       attributes.state = states.QUIZ;
       attributes.counter = 0;
-      attributes.quizScore = [0,0,0,0];
+
+      //intialize scoring array for any number of players
+      var quizScore = [];
+      var i;
+      for (i = 0; i < numPlayers; i++){
+        quizScore.push(0);
+      }
+
+      attributes.quizScore = quizScore;
       attributes.round = 0;
       attributes.currTeam = 0;
       attributes.numPlayers = numPlayers;
@@ -66,14 +85,16 @@ const QuizHandler = {
       var speakOutput = startQuizMessage;
 
     //Generate reponse specific to num teams, use == to allow for type conversions
+    //shuffle array for new teams each time
+    teamColors.sort(() => Math.random() - 0.5);
     if (numPlayers == 1){
         speakOutput += ``;
-    } else if (numPlayers == 2){
-        speakOutput += 'Team ' + teamColors[0] + ` will go first, followed by ` + teamColors[1] + ` . `;
-    } else if (numPlayers == 3){
-        speakOutput += 'Team ' + teamColors[0] + ` will go first, followed by ` + teamColors[1] + `, ` + teamColors[2] + ` . `;
-    } else {
-        speakOutput += 'Team ' + teamColors[0] + ` will go first, followed by ` + teamColors[1] + `, ` + teamColors[2] + `, `+ teamColors[3] + ` . `;
+    } else if (numPlayers > 1){
+        speakOutput += 'Team ' + teamColors[0] + ` will go first, followed by `;
+        for (i = 1; i < numPlayers - 1; i++){
+            speakOutput += teamColors[i] + `, `;
+          }
+          speakOutput += teamColors[i] + `. `;
     }
 
     var question = askQuestion(handlerInput);
@@ -110,11 +131,11 @@ const QuizHandler = {
       const isCorrect = compareSlots(handlerInput.requestEnvelope.request.intent.slots, item.answer);
   
       if (isCorrect) {
-        speakOutput = `Nice! `;
+        speakOutput = getSpeechCon(true);
         attributes.quizScore[attributes.currTeam] += 1;
         handlerInput.attributesManager.setSessionAttributes(attributes);
       } else {
-        speakOutput = `Darn. `;
+        speakOutput = getSpeechCon(false);
       }
   
       speakOutput += getAnswer(item);
@@ -214,9 +235,11 @@ const QuizHandler = {
     //update round
     if(attributes.counter % attributes.numPlayers == 0){
         attributes.round += 1; 
-        //only announce round after first round
-        if (attributes.round >= 2) {
+        //only announce round after first round, only announce points change on first round
+        if (attributes.round == 2) {
         question += `Onto round ` + attributes.round + `. The questions are harder and worth more points! `
+        }else if (attributes.round > 2){
+        question += `Onto round ` + attributes.round + `. `
         }
     } 
 
@@ -258,7 +281,6 @@ const QuizHandler = {
     var winners = ``;
     var topScore = 0;
     for (i = 0; i < attributes.numPlayers; i++) {
-        //Something is wrong here, throws an error
         //found higher score, reset winner array
     if(attributes.quizScore[i] > topScore){
         winners = ``;
@@ -273,13 +295,19 @@ const QuizHandler = {
     //making winner string
     var response = '';
     if(attributes.numPlayers == 1){
-        response = `You scored ` + topScore + `. Great job! Come back soon for more trivia!`
+        response = `You scored ` + topScore + ` points. Great job! Come back soon for more trivia!`
     }else{
-        response = winners + ` won with ` + topScore + ` points. Great job everyone!`
+        response = winners + ` won with ` + topScore + ` points. Great job everyone! Come back soon for more trivia!`
     }
 
     return response;
   }
+
+  function getSpeechCon(type) {
+    if (type) return `<say-as interpret-as='interjection'>${speechConsCorrect[getRandom(0, speechConsCorrect.length - 1)]}! </say-as><break strength='strong'/>`;
+    return `<say-as interpret-as='interjection'>${speechConsWrong[getRandom(0, speechConsWrong.length - 1)]} </say-as><break strength='strong'/>`;
+  }
+
 
   function getRandom(min, max) {
     return Math.floor((Math.random() * ((max - min) + 1)) + min);
