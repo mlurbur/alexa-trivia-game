@@ -14,13 +14,13 @@ var teamColors = [`green`, `blue`, `purple`, `orange`, `gray`, `ivory`, `maroon`
 const speechConsCorrect = ['Booya', 'All righty', 'Bam', 'Bazinga', 'Bingo', 'Boom', 'Bravo', 'Cha Ching', 'Cheers', 'Dynomite', 'Hip hip hooray', 'Hurrah', 'Hurray', 'Huzzah', 'Oh dear.  Just kidding.  Hurray', 'Kaboom', 'Kaching', 'Oh snap', 'Phew','Righto', 'Way to go', 'Well done', 'Whee', 'Woo hoo', 'Yay', 'Wowza', 'Yowsa'];
 const speechConsWrong = ['Argh', 'Aw man', 'Blarg', 'Blast', 'Boo', 'Bummer', 'Darn', "D'oh", 'Dun dun dun', 'Eek', 'Honk', 'Le sigh', 'Mamma mia', 'Oh boy', 'Oh dear', 'Oof', 'Ouch', 'Ruh roh', 'Shucks', 'Uh oh', 'Wah wah', 'Whoops a daisy', 'Yikes'];
 const data = [
-  {quest: `This person founded Amazon.com`, answer: `jeff bezos`, story: ``},
-  {quest: `It is said to always be this day at Amazon`, answer: `day 1`, story: ``},
-  {quest: `He is the CEO of Amazon's cloud computing business, Amazon Web Services`, answer: `andy jassy`, story: ``},
-  {quest: `This bear is best`, answer: `black bear`, story: ``},
-  {quest: `This is Ron Swanson's favorite form of alchohol`, answer: `whiskey`, story: `1`},
-  {quest: `This is Ron Swanson's favorite form of alchohol`, answer: `whiskey`, story: `2`},
-  {quest: `This is Ron Swanson's favorite form of alchohol`, answer: `whiskey`, story: `3`}
+  {quest: `This person founded Amazon.com`, answer: [`jeff bezos`, `jeff`], story: ``},
+  {quest: `It is said to always be this day at Amazon`, answer: [`day 1`], story: ``},
+  {quest: `He is the CEO of Amazon's cloud computing business, Amazon Web Services`, answer: [`andy jassy`], story: ``},
+  {quest: `This bear is best`, answer: [`black bear`], story: ``},
+  {quest: `This is Ron Swanson's favorite form of alchohol`, answer: [`whiskey`], story: `1`},
+  {quest: `This is Ron Swanson's favorite form of alchohol`, answer: [`whiskey`], story: `2`},
+  {quest: `This is Ron Swanson's favorite form of alchohol`, answer: [`whiskey`], story: `3`}
 ];
 
 const states = {
@@ -127,8 +127,15 @@ const QuizHandler = {
       var repromptOutput = ``;
 
       const item = attributes.quizItem;
-      const property = attributes.quizProperty;
-      const isCorrect = compareSlots(handlerInput.requestEnvelope.request.intent.slots, item.answer);
+
+      //checking if answer matches any of acceptable answers
+      var i;
+      var isCorrect = false;
+      for (i = 0; i < item.answer.length; i++){
+        if (compareSlots(handlerInput.requestEnvelope.request.intent.slots, item.answer[i])) {
+            isCorrect = true;
+        }
+      }
   
       if (isCorrect) {
         speakOutput = getSpeechCon(true);
@@ -141,6 +148,7 @@ const QuizHandler = {
       speakOutput += getAnswer(item);
       speakOutput += getStory(item);
       var question = ``;
+
       //question count is less than total number of needed questions, WE NEED TO ASK ANOTHER QUESTION.
       if (attributes.counter < (numRounds * attributes.numPlayers)) {
         question = askQuestion(handlerInput);
@@ -268,7 +276,7 @@ const QuizHandler = {
   }
 
   function getAnswer(item) {
-        return `The correct answer is ${item.answer}. `;
+        return `The correct answer is ${item.answer[0]}. `;
   }
 
   function getStory(item) {
@@ -305,7 +313,7 @@ const QuizHandler = {
 
   function getSpeechCon(type) {
     if (type) return `<say-as interpret-as='interjection'>${speechConsCorrect[getRandom(0, speechConsCorrect.length - 1)]}! </say-as><break strength='strong'/>`;
-    return `<say-as interpret-as='interjection'>${speechConsWrong[getRandom(0, speechConsWrong.length - 1)]} </say-as><break strength='strong'/>`;
+    return `<say-as interpret-as='interjection'>${speechConsWrong[getRandom(0, speechConsWrong.length - 1)]}. </say-as><break strength='strong'/>`;
   }
 
 
