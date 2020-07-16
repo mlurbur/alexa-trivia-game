@@ -132,7 +132,7 @@ const QuizHandler = {
         .getResponse();
       }
       else {
-        speakOutput += getFinalScore(attributes) + exitSkillMessage;
+        speakOutput += getFinalScore(attributes);
         return response.speak(speakOutput).getResponse();
       }
     },
@@ -259,19 +259,24 @@ const QuizHandler = {
     var topScore = 0;
     for (i = 0; i < attributes.numPlayers; i++) {
         //Something is wrong here, throws an error
-    //     //found higher score, reset winner array
-    // if(attributes.quizScore[i] > topScore){
-    //     winners = ``;
-    //     winners += attributes.teamColors[i];
-    //     topScore = attributes.quizScore[i];
-    //     //found tie, add winner
-    // } else if (attributes.quizScore[i] == topScore) {
-    //     winners += ` and ` + attributes.teamColors[i];
-    // }
+        //found higher score, reset winner array
+    if(attributes.quizScore[i] > topScore){
+        winners = ``;
+        winners += teamColors[i];
+        topScore = attributes.quizScore[i];
+        //found tie, add winner
+    }else if (attributes.quizScore[i] == topScore) {
+        winners += ` and ` + teamColors[i];
+    }
     }
 
     //making winner string
-    var response = `nice`; //winners + ` won with ` + topScore + ` points. Great job everyone!`
+    var response = '';
+    if(attributes.numPlayers == 1){
+        response = `You scored ` + topScore + `. Great job! Come back soon for more trivia!`
+    }else{
+        response = winners + ` won with ` + topScore + ` points. Great job everyone!`
+    }
 
     return response;
   }
