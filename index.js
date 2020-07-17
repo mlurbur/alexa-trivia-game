@@ -4,8 +4,9 @@ const welcomeMessage = `Welcome to the Amazon intern jeopardy game! How many peo
 const startQuizMessage = `Let's get started! `;
 const exitSkillMessage = `Thank you for playing! Come back again soon for new questions! `;
 const helpMessage = `I'm not sure about that, sorry. `;
-const numRounds = 2;
+const numRounds = 3;
 const maxPlayers = 4;
+const pointMultiplier = 10; //multiplied by round to determine points for each question
 
 /* CONSTANTS */
 const skillBuilder = Alexa.SkillBuilders.custom();
@@ -13,14 +14,95 @@ const skillBuilder = Alexa.SkillBuilders.custom();
 var teamColors = [`green`, `blue`, `purple`, `orange`, `gray`, `ivory`, `maroon`, `aquamarine`, `coral`, `crimson`, `khaki`, `magenta`, `plum`, `olive`, `cyan`, `lime`, `silver`, `gold`, `teal`];
 const speechConsCorrect = ['Booya', 'All righty', 'Bam', 'Bazinga', 'Bingo', 'Boom', 'Bravo', 'Cha Ching', 'Cheers', 'Dynomite', 'Hip hip hooray', 'Hurrah', 'Hurray', 'Huzzah', 'Oh dear.  Just kidding.  Hurray', 'Kaboom', 'Kaching', 'Oh snap', 'Phew','Righto', 'Way to go', 'Well done', 'Whee', 'Woo hoo', 'Yay', 'Wowza', 'Yowsa'];
 const speechConsWrong = ['Argh', 'Aw man', 'Blarg', 'Blast', 'Boo', 'Bummer', 'Darn', "D'oh", 'Dun dun dun', 'Eek', 'Honk', 'Le sigh', 'Mamma mia', 'Oh boy', 'Oh dear', 'Oof', 'Ouch', 'Ruh roh', 'Shucks', 'Uh oh', 'Wah wah', 'Whoops a daisy', 'Yikes'];
-const data = [
-  {quest: `This person founded Amazon.com`, answer: [`jeff bezos`, `jeff`], story: ``},
-  {quest: `It is said to always be this day at Amazon`, answer: [`day 1`], story: ``},
-  {quest: `He is the CEO of Amazon's cloud computing business, Amazon Web Services`, answer: [`andy jassy`], story: ``},
-  {quest: `This bear is best`, answer: [`black bear`], story: ``},
-  {quest: `This is Ron Swanson's favorite form of alchohol`, answer: [`whiskey`], story: `1`},
-  {quest: `This is Ron Swanson's favorite form of alchohol`, answer: [`whiskey`], story: `2`},
-  {quest: `This is Ron Swanson's favorite form of alchohol`, answer: [`whiskey`], story: `3`}
+var dataEasy = [
+    {quest: 'This person founded Amazon.com', 
+    answer: ['jeff bezos', 'jeff', 'bezos', 'Mr. bezos', 'el jefe'], 
+    story: 'Amazon was founded in Bellevue, Washington, on July 5, 1994. The company started as an online marketplace for books but expanded to sell just about everything', 
+    level: 'easy'}, 
+    
+    {quest: 'This is the city where Amazon Headquarters is located', 
+    answer: ['seattle'], 
+    story: 'Seattle is also home to the amazon spheres, the space needle, and Macklemore', 
+    level: 'easy'},
+    
+    {quest: 'This is what acronym AWS stands for', 
+    answer: ['amazon web services'], 
+    story: 'AWS is the world\'s number 1 cloud service provider, with customers like Netflix and Facebook', 
+    level: 'easy'},
+    
+    {quest: 'In 2017, Amazon accquired this supermarket chain',
+    answer: ['Whole foods'],
+    story: 'The purchase of Whole Foods marked Amazon\'s expansion into physical retail and the grocery business',
+    level: 'easy'},
+    
+    {quest: 'Amazon released this popular e-reader, codenamed Fiona, in 2007',
+    answer: ['kindle', 'amazon kindle', 'the kindle'],
+    story: 'The name kindle, as in kindling a fire, is meant as a metaphor for reading and intellectual excitement',
+    level: 'easy'}
+];
+
+var dataMedium = [ 
+    {quest: 'Amazon was founded in this city',
+    answer: ['Bellevue', 'Belvue'],
+    story: 'Like many other tech startups, Amazon was founded in a garage, specifically Jeff Bezos\'s garage',
+    level: 'medium'},
+
+    {quest: 'Amazon\'s second headquarters are located here',
+    answer: ['Arlington', 'Virginia', 'National Landing'],
+    story: 'Amazon plans to locate 25,000 employees at HQ2 by 2030 and is partnering with Virginia Tech to support the development of high-tech talent',
+    level: 'medium'},
+
+    {quest: 'These 14 ideals guide Amazon\'s business decisions and culture',
+    answer: ['leadership principles', 'leadership principle'],
+    story: 'These 14 principles continue to evolve over time and embody Amazon\'s peculiar culture',
+    level: 'medium'},
+
+    {quest: 'It is said to always be this day at Amazon', 
+    answer: ['day 1', '1', 'one'], 
+    story: 'The Day 1 mentality means that Amazon treats every day like it\'s the first day of their new startup', 
+    level: 'medium'},
+    
+    {quest: 'This is the name of a high tech supermarket that allows shoppers to skip checkout altogether', 
+    answer: ['Amazon Go'], 
+    story: 'Amazon Go stores are equipped with hundreds of sensors, keeping a virtual shopping cart so customers can just walk out when they\'re done shopping', 
+    level: 'medium'},
+    
+    {quest: 'As a cost saving measure in the early days of Amazon, this was used as a desk', 
+    answer: ['door', 'a door'], 
+    story: 'Cheap doors and sawed off two by fours were used as desks to save money in the early days of Amazon. This mindset or frugality continues to this day', 
+    level: 'medium'},
+    
+    {quest: 'At Amazon, teams are generally restricted to the amount of people that could be fed by blank', 
+    answer: ['two pizzas'], 
+    story: 'Project teams are generally capped around 10 people per team - or two pizza teams', 
+    level: 'medium'}
+];
+
+var dataHard = [   
+    {quest: 'In 2014, Amazon accquired this live streaming platform popular among the gaming community',
+    answer: ['Twitch'],
+    story: 'Twitch is the World\'s leading live streaming platform for gamers',
+    level: 'hard'},
+
+    {quest: 'Amazon was initially named this', 
+    answer: ['cadabra'], 
+    story: 'Amazon was briefly named Cadabra, short for the magic term abracadabra', 
+    level: 'hard'},
+    
+    {quest: 'This is the title of the first book ever sold on Amazon', 
+    answer: ['Fluid Concepts and Creative Analogies', 'Fluid Concepts'], 
+    story: 'Authored by Douglas Hofstadter, this book tackles the subject of artificial intelligence and machine learning', 
+    level: 'hard'},
+    
+    {quest: 'Amazon.com originally launched with this tagline', 
+    answer: ['Earth\'s biggest book store'], 
+    story: 'Jeff Bezos chose the name Amazon to suggest scale, and something exotic and different', 
+    level: 'hard'},
+
+    {quest: 'This is the name of Amazon\'s mascot',
+    answer: ['Peccy', 'Pecy'],
+    story: 'This adorable, googley-eyed, orange creature is said to embody Amazon\'s peculiar ways',
+    level: 'hard'}
 ];
 
 const states = {
@@ -84,9 +166,13 @@ const QuizHandler = {
 
       var speakOutput = startQuizMessage;
 
-    //Generate reponse specific to num teams, use == to allow for type conversions
-    //shuffle array for new teams each time
+    //shuffle array for new teams and new question order each time
+    dataEasy.sort(() => Math.random() - 0.5);
+    dataMedium.sort(() => Math.random() - 0.5);
+    dataHard.sort(() => Math.random() - 0.5);
     teamColors.sort(() => Math.random() - 0.5);
+
+    //Generate reponse specific to num teams, use == to allow for type conversions
     if (numPlayers == 1){
         speakOutput += ``;
     } else if (numPlayers > 1){
@@ -139,7 +225,7 @@ const QuizHandler = {
   
       if (isCorrect) {
         speakOutput = getSpeechCon(true);
-        attributes.quizScore[attributes.currTeam] += 1;
+        attributes.quizScore[attributes.currTeam] += (attributes.round * pointMultiplier);
         handlerInput.attributesManager.setSessionAttributes(attributes);
       } else {
         speakOutput = getSpeechCon(false);
@@ -233,12 +319,8 @@ const QuizHandler = {
     //GET SESSION ATTRIBUTES
     const attributes = handlerInput.attributesManager.getSessionAttributes();
     //GENERATING THE QUESTION FROM DATA
-    const item = data[attributes.counter];
+    //const item = data[attributes.counter];
     var question = ``;
-  
-    //SET QUESTION DATA TO ATTRIBUTES
-    attributes.selectedItemIndex = attributes.counter;
-    attributes.quizItem = item;
 
     //update round
     if(attributes.counter % attributes.numPlayers == 0){
@@ -254,6 +336,18 @@ const QuizHandler = {
     //update currTeam
     attributes.currTeam = attributes.counter % attributes.numPlayers;
 
+    //SET QUESTION DATA TO ATTRIBUTES
+    var item;
+    if (attributes.round == 1){
+        item = dataEasy[attributes.currTeam];
+    } else if (attributes.round == 2){
+        item = dataMedium[attributes.currTeam];
+    } else {
+        item = dataHard[attributes.currTeam];
+    }
+
+    attributes.quizItem = item;
+
     //update counter
     attributes.counter += 1;
   
@@ -263,15 +357,15 @@ const QuizHandler = {
     //disregard teams colors if just one person
   if (attributes.numPlayers > 1){
     question += teamColors[attributes.currTeam] + ` team, here is your ` + attributes.round + `th clue: `
-    question += getQuestion(attributes.counter, item);
+    question += getQuestion(item);
   } else {
     question = `Here is your ` + attributes.round + `th clue: `
-    question += getQuestion(attributes.counter, item);
+    question += getQuestion(item);
   }
     return question;
   }
 
-  function getQuestion(counter, item) { 
+  function getQuestion(item) {
     return `${item.quest}. `;
   }
 
@@ -280,7 +374,7 @@ const QuizHandler = {
   }
 
   function getStory(item) {
-    return `Here's a little more information: ${item.story}. `;
+    return `${item.story}. `;
   }
 
   function getFinalScore(attributes) {
