@@ -27,7 +27,7 @@ var dataEasy = [
 
 var dataMedium = [ 
     {quest: 'Amazon was founded in this city',
-    answer: ['Bellevue'],
+    answer: ['Bellevue', 'Belvue'],
     story: 'Like many other tech startups, Amazon was founded in a garage, specifically Jeff Bezos\'s garage',
     level: 'medium'},
 
