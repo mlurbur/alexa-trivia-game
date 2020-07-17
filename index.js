@@ -47,9 +47,9 @@ var dataMedium = [
     story: 'Like many other tech startups, Amazon was founded in a garage, specifically Jeff Bezos\'s garage',
     level: 'medium'},
 
-    {quest: 'Amazon\'s second headquarters are located here',
-    answer: ['Arlington', 'Virginia', 'National Landing'],
-    story: 'Amazon plans to locate 25,000 employees at HQ2 by 2030 and is partnering with Virginia Tech to support the development of high-tech talent',
+    {quest: 'Amazon\'s second headquarters are located in this state',
+    answer: ['Virginia'],
+    story: 'Amazon plans to have 25,000 employees at HQ2 by 2030 and is partnering with Virginia Tech to support the development of high-tech talent',
     level: 'medium'},
 
     {quest: 'These 14 ideals guide Amazon\'s business decisions and culture',
@@ -69,7 +69,7 @@ var dataMedium = [
     
     {quest: 'As a cost saving measure in the early days of Amazon, this was used as a desk', 
     answer: ['door', 'a door'], 
-    story: 'Cheap doors and sawed off two by fours were used as desks to save money in the early days of Amazon. This mindset or frugality continues to this day', 
+    story: 'Cheap doors and sawed off two by fours were used as desks to save money in the early days of Amazon. This mindset of frugality continues to this day', 
     level: 'medium'},
     
     {quest: 'At Amazon, teams are generally restricted to the amount of people that could be fed by blank', 
@@ -229,9 +229,9 @@ const QuizHandler = {
         handlerInput.attributesManager.setSessionAttributes(attributes);
       } else {
         speakOutput = getSpeechCon(false);
+        //only get answer if wrong
+        speakOutput += getAnswer(item);
       }
-  
-      speakOutput += getAnswer(item);
       speakOutput += getStory(item);
       var question = ``;
 
@@ -397,9 +397,9 @@ const QuizHandler = {
     //making winner string
     var response = '';
     if(attributes.numPlayers == 1){
-        response = `You scored ` + topScore + ` points. Great job! Come back soon for more trivia!`
+        response = `The results are in. You scored ` + topScore + ` points. Great job! Come back soon for more trivia!`
     }else{
-        response = winners + ` won with ` + topScore + ` points. Great job everyone! Come back soon for more trivia!`
+        response = `The results are in. ` + winners + ` won with ` + topScore + ` points. Great job everyone! Come back soon for more trivia!`
     }
 
     return response;
