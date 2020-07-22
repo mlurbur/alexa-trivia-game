@@ -10,6 +10,33 @@ const pointMultiplier = 10; //multiplied by round to determine points for each q
 
 /* CONSTANTS */
 const skillBuilder = Alexa.SkillBuilders.custom();
+// airtable
+const Airtable = require('airtable');
+// fill this in with your own API key (https://support.airtable.com/hc/en-us/articles/219046777-How-do-I-get-my-API-key-)
+const base = new Airtable({apiKey: 'YOUR_API_KEY'}).base('appPCPv2GlOfZ6wLe');
+
+// posts a new item to Airtable with name, score, and ID
+// see part 3 of https://learn.voiceflow.com/en/articles/2521183-using-airtable-with-your-alexa-skill
+// and API docs for https://airtable.com/appPCPv2GlOfZ6wLe/api/docs#javascript/table:leaderboard:retrieve
+base('Leaderboard').create([
+    {
+      "fields": {
+          name: 'Hello from Alexa :)',
+          score: 99,
+          id: 'yee'
+      }
+    }
+  ], function(err, records) {
+    if (err) {
+      console.error(err);
+      return;
+    }
+    records.forEach(function (record) {
+      console.log(record.getId());
+    });
+  });
+
+
 //made a var to allow for shuffling at beginning of each game
 var teamColors = [`green`, `blue`, `purple`, `orange`, `gray`, `ivory`, `maroon`, `aquamarine`, `coral`, `crimson`, `khaki`, `magenta`, `plum`, `olive`, `cyan`, `lime`, `silver`, `gold`, `teal`];
 const speechConsCorrect = ['Booya', 'All righty', 'Bam', 'Bazinga', 'Bingo', 'Boom', 'Bravo', 'Cha Ching', 'Cheers', 'Dynomite', 'Hip hip hooray', 'Hurrah', 'Hurray', 'Huzzah', 'Oh dear.  Just kidding.  Hurray', 'Kaboom', 'Kaching', 'Oh snap', 'Phew','Righto', 'Way to go', 'Well done', 'Whee', 'Woo hoo', 'Yay', 'Wowza', 'Yowsa'];
