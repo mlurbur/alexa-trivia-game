@@ -1,42 +1,22 @@
 const Alexa = require('ask-sdk-core');
 
-const welcomeMessage = `Welcome to the Amazon intern jeopardy game! How many people are playing? `;
+const welcomeMessage = `Welcome to the Amazon intern jeopardy game! You can play by yourself or with up to four teams. How many teams are playing? If it's just you, say one. `;
 const startQuizMessage = `Let's get started! `;
 const exitSkillMessage = `Thank you for playing! Come back again soon for new questions! `;
-const helpMessage = `I'm not sure about that, sorry. `;
+const helpMessage = `Please answer with what is? or who is? `;
+const errorMessage = `Hmm, something isn't quite right. `
 const numRounds = 3;
 const maxPlayers = 4;
+var highScore = 0;
+var finishedQuestionsBool = false; //ensures that LeaderboardIntent is only triggered when all questions have been asked
+var askTeamsBool = true; //ensures that a number response doesn't start game over
 const pointMultiplier = 10; //multiplied by round to determine points for each question
+const Airtable = require('airtable');
+// fill this in with your own API key (https://support.airtable.com/hc/en-us/articles/219046777-How-do-I-get-my-API-key-)
+const base = new Airtable({apiKey: 'key34ifeIDTP0RsPu'}).base('appPCPv2GlOfZ6wLe');
 
 /* CONSTANTS */
 const skillBuilder = Alexa.SkillBuilders.custom();
-// airtable
-const Airtable = require('airtable');
-// fill this in with your own API key (https://support.airtable.com/hc/en-us/articles/219046777-How-do-I-get-my-API-key-)
-const base = new Airtable({apiKey: 'YOUR_API_KEY'}).base('appPCPv2GlOfZ6wLe');
-
-// posts a new item to Airtable with name, score, and ID
-// see part 3 of https://learn.voiceflow.com/en/articles/2521183-using-airtable-with-your-alexa-skill
-// and API docs for https://airtable.com/appPCPv2GlOfZ6wLe/api/docs#javascript/table:leaderboard:retrieve
-base('Leaderboard').create([
-    {
-      "fields": {
-          name: 'Hello from Alexa :)',
-          score: 99,
-          id: 'yee'
-      }
-    }
-  ], function(err, records) {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    records.forEach(function (record) {
-      console.log(record.getId());
-    });
-  });
-
-
 //made a var to allow for shuffling at beginning of each game
 var teamColors = [`green`, `blue`, `purple`, `orange`, `gray`, `ivory`, `maroon`, `aquamarine`, `coral`, `crimson`, `khaki`, `magenta`, `plum`, `olive`, `cyan`, `lime`, `silver`, `gold`, `teal`];
 const speechConsCorrect = ['Booya', 'All righty', 'Bam', 'Bazinga', 'Bingo', 'Boom', 'Bravo', 'Cha Ching', 'Cheers', 'Dynomite', 'Hip hip hooray', 'Hurrah', 'Hurray', 'Huzzah', 'Oh dear.  Just kidding.  Hurray', 'Kaboom', 'Kaching', 'Oh snap', 'Phew','Righto', 'Way to go', 'Well done', 'Whee', 'Woo hoo', 'Yay', 'Wowza', 'Yowsa'];
@@ -58,7 +38,7 @@ var dataEasy = [
     level: 'easy'},
     
     {quest: 'In 2017, Amazon accquired this supermarket chain',
-    answer: ['Whole foods'],
+    answer: ['whole foods'],
     story: 'The purchase of Whole Foods marked Amazon\'s expansion into physical retail and the grocery business',
     level: 'easy'},
     
@@ -70,12 +50,12 @@ var dataEasy = [
 
 var dataMedium = [ 
     {quest: 'Amazon was founded in this city',
-    answer: ['Bellevue', 'Belvue'],
+    answer: ['bellevue', 'belvue'],
     story: 'Like many other tech startups, Amazon was founded in a garage, specifically Jeff Bezos\'s garage',
     level: 'medium'},
 
     {quest: 'Amazon\'s second headquarters are located in this state',
-    answer: ['Virginia'],
+    answer: ['virginia'],
     story: 'Amazon plans to have 25,000 employees at HQ2 by 2030 and is partnering with Virginia Tech to support the development of high-tech talent',
     level: 'medium'},
 
@@ -90,7 +70,7 @@ var dataMedium = [
     level: 'medium'},
     
     {quest: 'This is the name of a high tech supermarket that allows shoppers to skip checkout altogether', 
-    answer: ['Amazon Go'], 
+    answer: ['amazon go'], 
     story: 'Amazon Go stores are equipped with hundreds of sensors, keeping a virtual shopping cart so customers can just walk out when they\'re done shopping', 
     level: 'medium'},
     
@@ -100,14 +80,14 @@ var dataMedium = [
     level: 'medium'},
     
     {quest: 'At Amazon, teams are generally restricted to the amount of people that could be fed by blank', 
-    answer: ['two pizzas'], 
+    answer: ['two pizzas', `2 pizzas`], 
     story: 'Project teams are generally capped around 10 people per team - or two pizza teams', 
     level: 'medium'}
 ];
 
 var dataHard = [   
     {quest: 'In 2014, Amazon accquired this live streaming platform popular among the gaming community',
-    answer: ['Twitch'],
+    answer: ['twitch'],
     story: 'Twitch is the World\'s leading live streaming platform for gamers',
     level: 'hard'},
 
@@ -117,17 +97,17 @@ var dataHard = [
     level: 'hard'},
     
     {quest: 'This is the title of the first book ever sold on Amazon', 
-    answer: ['Fluid Concepts and Creative Analogies', 'Fluid Concepts'], 
+    answer: ['fluid concepts and creative analogies', 'fluid concepts'], 
     story: 'Authored by Douglas Hofstadter, this book tackles the subject of artificial intelligence and machine learning', 
     level: 'hard'},
     
     {quest: 'Amazon.com originally launched with this tagline', 
-    answer: ['Earth\'s biggest book store'], 
+    answer: ['earth\'s biggest book store', `earths biggest book store`], 
     story: 'Jeff Bezos chose the name Amazon to suggest scale, and something exotic and different', 
     level: 'hard'},
 
     {quest: 'This is the name of Amazon\'s mascot',
-    answer: ['Peccy', 'Pecy'],
+    answer: ['peccy', 'pecy'],
     story: 'This adorable, googley-eyed, orange creature is said to embody Amazon\'s peculiar ways',
     level: 'hard'}
 ];
@@ -141,12 +121,11 @@ const states = {
 /* INTENT HANDLERS */
 const LaunchRequestHandler = {
   canHandle(handlerInput) {
-    return handlerInput.requestEnvelope.request.type === `LaunchRequest`;
+    return (handlerInput.requestEnvelope.request.type === `LaunchRequest`) && askTeamsBool;
   },
   handle(handlerInput) {
-    const attributesManager = handlerInput.attributesManager;
-    const sessionAttributes = attributesManager.getSessionAttributes();
     const speechText = welcomeMessage
+    askTeamsBool = false;
     return handlerInput.responseBuilder
       .speak(speechText)
       .reprompt(helpMessage)
@@ -160,13 +139,14 @@ const QuizHandler = {
       const request = handlerInput.requestEnvelope.request;
       console.log("Inside QuizHandler");
       console.log(JSON.stringify(request));
-      return request.type === "IntentRequest" &&
+      return (request.type === "IntentRequest") && //askTeamsBool &&
              (request.intent.name === "QuizIntent" || request.intent.name === "AMAZON.StartOverIntent");
     },
     handle(handlerInput) {
       const attributes = handlerInput.attributesManager.getSessionAttributes();
       const response = handlerInput.responseBuilder;
       var numPlayers = handlerInput.requestEnvelope.request.intent.slots.Number.value;
+      //askTeamsBool = false;
 
     //Make sure that numPlayers is bounded [1, maxPlayers]
       if (numPlayers < 1){
@@ -267,16 +247,100 @@ const QuizHandler = {
         question = askQuestion(handlerInput);
 
         speakOutput += question;
-        repromptOutput = question;
+        repromptOutput = helpMessage;
   
         return response.speak(speakOutput)
         .reprompt(repromptOutput)
         .getResponse();
       }
       else {
+        finishedQuestionsBool = true;
+        handlerInput.attributesManager.setSessionAttributes(attributes);
         speakOutput += getFinalScore(attributes);
-        return response.speak(speakOutput).getResponse();
+        return response.speak(speakOutput)
+        .reprompt(repromptOutput)
+        .getResponse();
       }
+    },
+  };
+
+  const LeaderboardHandler = {
+    canHandle(handlerInput) {
+      const attributes = handlerInput.attributesManager.getSessionAttributes();
+      const request = handlerInput.requestEnvelope.request;
+
+      return (request.type === "IntentRequest") && finishedQuestionsBool &&
+             (request.intent.name === "LeaderboardIntent");
+    },
+    handle(handlerInput) {
+    const attributesManager = handlerInput.attributesManager;
+    const sessionAttributes = attributesManager.getSessionAttributes();
+    var leaderName = handlerInput.requestEnvelope.request.intent.slots.Name.value;
+    var userid = getRandom(0,500).toString();
+    var place = 0;
+    var recordCount = 0;
+    var totalScore = 0;
+    var speechText = ``;
+
+    //Posting to leaderboard
+    base('Leaderboard').create([
+      {
+        "fields": {
+            name: leaderName,
+            score: highScore,
+            id: userid
+        }
+      }
+    ], function(err, records) {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      records.forEach(function (record) {
+        console.log(record.getId());
+      });
+    });
+  
+  // **************************************** THIS IS WHERE THE ISSUE IS *******************************
+  // The variables updated within this "base" thing don't reflect the changes outside of it, making it so
+  // I can't give a response with the average and place (there may also be an issue with how I'm finding place
+  // but that isn't the real issue). I also can't speak within the base function as far I have have tested
+    //Getting data
+    base('Leaderboard').select({
+      // Selecting the first 100 records in Grid view:
+      maxRecords: 100,
+      view: "Grid view",
+      fields: ["name", "score", `id`]
+    }).eachPage(function page(records, fetchNextPage) {
+        // This function (`page`) will get called for each page of records.
+    
+        records.forEach(function(record) {
+          recordCount++;
+          totalScore += record.get(`score`);
+
+            if ((record.get(`id`) == userid)){
+                place = recordCount;
+            }
+        });
+        // To fetch the next page of records, call `fetchNextPage`.
+        // If there are more records, `page` will get called again.
+        // If there are no more records, `done` will get called.
+        fetchNextPage();
+
+        var avgScore = totalScore / recordCount;
+
+        speechText = `Posting your score to the leaderboard ` + leaderName + `. You're in ` + place.toString() + `th place. The average score is ` + avgScore.toString();
+
+    
+    }, function done(err) {
+        if (err) { console.error(err); return; }
+    });
+
+    return handlerInput.responseBuilder
+    .speak(speechText)
+    .getResponse();
+
+
     },
   };
   
@@ -322,8 +386,8 @@ const QuizHandler = {
       console.log(`Handler Input: ${JSON.stringify(handlerInput)}`);
   
       return handlerInput.responseBuilder
-        .speak(helpMessage)
-        .reprompt(helpMessage)
+        .speak(errorMessage)
+        .reprompt(errorMessage)
         .getResponse();
     },
   };
@@ -408,15 +472,14 @@ const QuizHandler = {
     //finding winners first
     var i;
     var winners = ``;
-    var topScore = 0;
     for (i = 0; i < attributes.numPlayers; i++) {
         //found higher score, reset winner array
-    if(attributes.quizScore[i] > topScore){
+    if(attributes.quizScore[i] > highScore){
         winners = ``;
         winners += teamColors[i];
-        topScore = attributes.quizScore[i];
+        highScore = attributes.quizScore[i];
         //found tie, add winner
-    }else if (attributes.quizScore[i] == topScore) {
+    }else if (attributes.quizScore[i] == highScore) {
         winners += ` and ` + teamColors[i];
     }
     }
@@ -424,9 +487,9 @@ const QuizHandler = {
     //making winner string
     var response = '';
     if(attributes.numPlayers == 1){
-        response = `The results are in. You scored ` + topScore + ` points. Great job! Come back soon for more trivia!`
+        response = `The results are in. You scored ` + highScore + ` points. Great job! Come back soon for more trivia! What is your name?`
     }else{
-        response = `The results are in. ` + winners + ` won with ` + topScore + ` points. Great job everyone! Come back soon for more trivia!`
+        response = `The results are in. ` + winners + ` won with ` + highScore + ` points. Great job everyone! Come back soon for more trivia! What is your name?`
     }
 
     return response;
@@ -449,6 +512,7 @@ exports.handler = skillBuilder
     LaunchRequestHandler,
     QuizHandler,
     QuizAnswerHandler,
+    LeaderboardHandler,
     ExitHandler,
     SessionEndedRequestHandler
   )
