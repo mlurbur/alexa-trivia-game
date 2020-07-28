@@ -8,12 +8,12 @@ const errorMessage = `Hmm, something isn't quite right. `
 const numRounds = 3;
 const maxPlayers = 4;
 var highScore = 0;
-var finishedQuestionsBool = false; //ensures that LeaderboardIntent is only triggered when all questions have been asked
+var finishedQuestionsBool = false; //ensures that leaderboardIntent is only triggered when all questions have been asked
 var askTeamsBool = true; //ensures that a number response doesn't start game over
 const pointMultiplier = 10; //multiplied by round to determine points for each question
 const Airtable = require('airtable');
 // fill this in with your own API key (https://support.airtable.com/hc/en-us/articles/219046777-How-do-I-get-my-API-key-)
-const base = new Airtable({apiKey: 'key34ifeIDTP0RsPu'}).base('appPCPv2GlOfZ6wLe');
+const base = new Airtable({apiKey: 'YourKey'}).base('appPCPv2GlOfZ6wLe'); //****************gotta use you own key******************************
 
 /* CONSTANTS */
 const skillBuilder = Alexa.SkillBuilders.custom();
@@ -146,7 +146,6 @@ const QuizHandler = {
       const attributes = handlerInput.attributesManager.getSessionAttributes();
       const response = handlerInput.responseBuilder;
       var numPlayers = handlerInput.requestEnvelope.request.intent.slots.Number.value;
-      //askTeamsBool = false;
 
     //Make sure that numPlayers is bounded [1, maxPlayers]
       if (numPlayers < 1){
@@ -208,6 +207,7 @@ const QuizHandler = {
       const request = handlerInput.requestEnvelope.request;
   
       return attributes.state === states.QUIZ &&
+             !finishedQuestionsBool &&
              request.type === 'IntentRequest' &&
              request.intent.name === 'AnswerIntent';
     },
@@ -266,83 +266,105 @@ const QuizHandler = {
 
   const LeaderboardHandler = {
     canHandle(handlerInput) {
-      const attributes = handlerInput.attributesManager.getSessionAttributes();
-      const request = handlerInput.requestEnvelope.request;
+        const attributes = handlerInput.attributesManager.getSessionAttributes();
+        const request = handlerInput.requestEnvelope.request;
 
-      return (request.type === "IntentRequest") && finishedQuestionsBool &&
-             (request.intent.name === "LeaderboardIntent");
+        return request.type === 'IntentRequest' && finishedQuestionsBool && request.intent.name === 'LeaderboardIntent';
     },
-    handle(handlerInput) {
-    const attributesManager = handlerInput.attributesManager;
-    const sessionAttributes = attributesManager.getSessionAttributes();
-    var leaderName = handlerInput.requestEnvelope.request.intent.slots.Name.value;
-    var userid = getRandom(0,500).toString();
-    var place = 0;
-    var recordCount = 0;
-    var totalScore = 0;
-    var speechText = ``;
+    async handle(handlerInput) {
+        const attributesManager = handlerInput.attributesManager;
+        const sessionAttributes = attributesManager.getSessionAttributes();
+        var leaderName = handlerInput.requestEnvelope.request.intent.slots.Name.value;
+        var userid = getRandom(0, 500).toString();
+        var place = 0;
+        var recordCount = 0;
+        var totalScore = 0;
 
-    //Posting to leaderboard
-    base('Leaderboard').create([
-      {
-        "fields": {
-            name: leaderName,
-            score: highScore,
-            id: userid
-        }
-      }
-    ], function(err, records) {
-      if (err) {
-        console.error(err);
-        return;
-      }
-      records.forEach(function (record) {
-        console.log(record.getId());
-      });
-    });
-  
-  // **************************************** THIS IS WHERE THE ISSUE IS *******************************
-  // The variables updated within this "base" thing don't reflect the changes outside of it, making it so
-  // I can't give a response with the average and place (there may also be an issue with how I'm finding place
-  // but that isn't the real issue). I also can't speak within the base function as far I have have tested
-    //Getting data
-    base('Leaderboard').select({
-      // Selecting the first 100 records in Grid view:
-      maxRecords: 100,
-      view: "Grid view",
-      fields: ["name", "score", `id`]
-    }).eachPage(function page(records, fetchNextPage) {
-        // This function (`page`) will get called for each page of records.
+        const postData = async (leaderName, highScore, userid) => {
+            return new Promise((resolve, reject) => {
+                base('Leaderboard').create(
+                    [
+                        {
+                            fields: {
+                                name: leaderName,
+                                score: highScore,
+                                id: userid,
+                            },
+                        },
+                    ],
+                    function (err, records) {
+                        if (err) {
+                            reject(err);
+                            return;
+                        }
+                        records.forEach(function (record) {
+                            console.log(record.getId());
+                        });
+                        resolve({ success: true });
+                    },
+                );
+            });
+        };
+
+        const getAverage = async (recordCount, totalScore, userid, place, leaderName) => {
+            return new Promise((resolve, reject) => {
+                base('Leaderboard')
+                    .select({
+                        // Selecting the first 100 records in Grid view:
+                        maxRecords: 100,
+                        view: 'Grid view',
+                        fields: ['name', 'score', `id`],
+                    })
+                    .eachPage(
+                        function page(records, fetchNextPage) {
+                            // This function (`page`) will get called for each page of records.
+
+                            records.forEach(function (record) {
+                                recordCount++;
+                                totalScore += record.get(`score`);
+
+                                if (record.get(`id`) === userid) {
+                                    place = recordCount;
+                                }
+                            });
+                            // To fetch the next page of records, call `fetchNextPage`.
+                            // If there are more records, `page` will get called again.
+                            // If there are no more records, `done` will get called.
+                            fetchNextPage();
+
+                            var avgScore = Math.round(totalScore / recordCount);
+
+                            resolve(
+                              
+                                `Posting your score to the leaderboard ` +
+                                    leaderName +
+                                    `. You're in ` +
+                                    place.toString() +
+                                    `th place. The average score is ` +
+                                    avgScore.toString(),
+                            );
+                        },
+                        function done(err) {
+                            if (err) {
+                                reject(err);
+                                return;
+                            }
+                        },
+                    );
+            });
+        };
+
+        //Posting to leaderboard
+        const success = await postData(leaderName, highScore, userid);
     
-        records.forEach(function(record) {
-          recordCount++;
-          totalScore += record.get(`score`);
+        const speechText = await getAverage(recordCount, totalScore, userid, place, leaderName);
+        
+        finishedQuestionsBool = false; //ensures that leaderboardIntent is only triggered when all questions have been asked
+        askTeamsBool = true; //ensures that a number response doesn't start game over
 
-            if ((record.get(`id`) == userid)){
-                place = recordCount;
-            }
-        });
-        // To fetch the next page of records, call `fetchNextPage`.
-        // If there are more records, `page` will get called again.
-        // If there are no more records, `done` will get called.
-        fetchNextPage();
-
-        var avgScore = totalScore / recordCount;
-
-        speechText = `Posting your score to the leaderboard ` + leaderName + `. You're in ` + place.toString() + `th place. The average score is ` + avgScore.toString();
-
-    
-    }, function done(err) {
-        if (err) { console.error(err); return; }
-    });
-
-    return handlerInput.responseBuilder
-    .speak(speechText)
-    .getResponse();
-
-
+        return handlerInput.responseBuilder.speak(speechText).getResponse();
     },
-  };
+};
   
 
   const ExitHandler = {
@@ -358,6 +380,8 @@ const QuizHandler = {
              );
     },
     handle(handlerInput) {
+      finishedQuestionsBool = false; //ensures that leaderboardIntent is only triggered when all questions have been asked
+      askTeamsBool = true; //ensures that a number response doesn't start game over
       return handlerInput.responseBuilder
         .speak(exitSkillMessage)
         .getResponse();
@@ -487,9 +511,9 @@ const QuizHandler = {
     //making winner string
     var response = '';
     if(attributes.numPlayers == 1){
-        response = `The results are in. You scored ` + highScore + ` points. Great job! Come back soon for more trivia! What is your name?`
+        response = `The results are in. You scored ` + highScore + ` points. Great job, let's put that on the leaderboard! What's your name?`;
     }else{
-        response = `The results are in. ` + winners + ` won with ` + highScore + ` points. Great job everyone! Come back soon for more trivia! What is your name?`
+        response = `The results are in. ` + winners + ` won with ` + highScore + ` points. Great job everyone, let's put that on the leaderboard! ` + winners + `, what is your team name?`;
     }
 
     return response;
