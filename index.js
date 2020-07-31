@@ -1,4 +1,5 @@
 const Alexa = require('ask-sdk-core');
+const Util = require('./util.js');
 
 const welcomeMessage = `Welcome to the Amazon intern trivia game! You can play by yourself or with up to four teams. How many teams are playing? If it's just you, say one team. `;
 const startQuizMessage = `Let's get started! `;
@@ -125,12 +126,17 @@ const LaunchRequestHandler = {
     return (handlerInput.requestEnvelope.request.type === `LaunchRequest`);
   },
   handle(handlerInput) {
+    const response = handlerInput.responseBuilder;
+     
+      const pictureUrl = Util.getS3PreSignedUrl("Media/jeopardy.png");
+
     const attributes = handlerInput.attributesManager.getSessionAttributes();
     attributes.counter = 0;
     handlerInput.attributesManager.setSessionAttributes(attributes);
     const speechText = welcomeMessage;
-    return handlerInput.responseBuilder
+    return response
       .speak(speechText)
+      .withStandardCard(`Intern Trivia`, welcomeMessage, pictureUrl)
       .reprompt(helpMessage)
       .getResponse();
   },
@@ -148,6 +154,7 @@ const QuizHandler = {
     handle(handlerInput) {
       const attributes = handlerInput.attributesManager.getSessionAttributes();
       const response = handlerInput.responseBuilder;
+      const pictureUrl = Util.getS3PreSignedUrl("Media/jeff.jpg");
       var numPlayers = handlerInput.requestEnvelope.request.intent.slots.Number.value;
 
     //Make sure that numPlayers is bounded [1, maxPlayers]
@@ -198,6 +205,7 @@ const QuizHandler = {
     handlerInput.attributesManager.setSessionAttributes(attributes);
   
     return response.speak(speakOutput)
+                    .withStandardCard(`Intern Trivia`, speakOutput, pictureUrl)
                     .reprompt(helpMessage)
                     .getResponse();
     },
@@ -218,6 +226,7 @@ const QuizHandler = {
       console.log("Inside QuizAnswerHandler - handle");
       const attributes = handlerInput.attributesManager.getSessionAttributes();
       const response = handlerInput.responseBuilder;
+      const pictureUrl = Util.getS3PreSignedUrl("Media/jeopardy.jpg");
   
       var speakOutput = ``;
       var repromptOutput = ``;
@@ -261,6 +270,7 @@ const QuizHandler = {
         handlerInput.attributesManager.setSessionAttributes(attributes);
         speakOutput += getFinalScore(attributes);
         return response.speak(speakOutput)
+        .withStandardCard(`Intern Trivia`, speakOutput, pictureUrl)
         .reprompt(repromptOutput)
         .getResponse();
       }
@@ -277,6 +287,7 @@ const QuizHandler = {
     async handle(handlerInput) {
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes();
+        const pictureUrl = Util.getS3PreSignedUrl("Media/jeopardy.jpg");
         var leaderName = handlerInput.requestEnvelope.request.intent.slots.Name.value;
         var userid = getRandom(0, 500).toString();
         var place = 0;
@@ -362,7 +373,7 @@ const QuizHandler = {
     
         const speechText = await getAverage(recordCount, totalScore, userid, place, leaderName);
 
-        return handlerInput.responseBuilder.speak(speechText).getResponse();
+        return handlerInput.responseBuilder.speak(speechText).withStandardCard(`Intern Trivia`, speechText, pictureUrl).getResponse();
     },
 };
   
@@ -420,6 +431,16 @@ const QuizHandler = {
         .getResponse();
     },
   };
+
+  function supportsDisplay(handlerInput) {
+    var hasDisplay =
+      handlerInput.requestEnvelope.context &&
+      handlerInput.requestEnvelope.context.System &&
+      handlerInput.requestEnvelope.context.System.device &&
+      handlerInput.requestEnvelope.context.System.device.supportedInterfaces &&
+      handlerInput.requestEnvelope.context.System.device.supportedInterfaces.Display
+    return hasDisplay;
+  }
 
 
   function compareSlots(slots, value) {
