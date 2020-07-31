@@ -127,8 +127,11 @@ const LaunchRequestHandler = {
   },
   handle(handlerInput) {
     const response = handlerInput.responseBuilder;
+    //if (supportsDisplay(handlerInput)) {
      
-      const pictureUrl = Util.getS3PreSignedUrl("Media/jeopardy.png");
+      const pictureUrl = Util.getS3PreSignedUrl("Media/test.jpg");
+    
+    //}
 
     const attributes = handlerInput.attributesManager.getSessionAttributes();
     attributes.counter = 0;
