@@ -1,19 +1,19 @@
 const Alexa = require('ask-sdk-core');
 
-const welcomeMessage = `Welcome to the Amazon intern jeopardy game! You can play by yourself or with up to four teams. How many teams are playing? If it's just you, say one. `;
+const welcomeMessage = `Welcome to the Amazon intern trivia game! You can play by yourself or with up to four teams. How many teams are playing? If it's just you, say one team. `;
 const startQuizMessage = `Let's get started! `;
 const exitSkillMessage = `Thank you for playing! Come back again soon for new questions! `;
-const helpMessage = `Please answer with what is? or who is? `;
-const errorMessage = `Hmm, something isn't quite right. `
+const helpMessage = `Please answer starting with what is? or who is? `;
+const helpMessageNum = `Please say something like one team or two teams. `;
+const helpMessageName = `Please say a single name. `;
+const errorMessage = `Hmm, that didn't sound like something I'm familiar with. `;
 const numRounds = 3;
 const maxPlayers = 4;
 var highScore = 0;
-var finishedQuestionsBool = false; //ensures that leaderboardIntent is only triggered when all questions have been asked
-var askTeamsBool = true; //ensures that a number response doesn't start game over
 const pointMultiplier = 10; //multiplied by round to determine points for each question
 const Airtable = require('airtable');
 // fill this in with your own API key (https://support.airtable.com/hc/en-us/articles/219046777-How-do-I-get-my-API-key-)
-const base = new Airtable({apiKey: 'YourKey'}).base('appPCPv2GlOfZ6wLe'); //****************gotta use you own key******************************
+const base = new Airtable({apiKey: 'key34ifeIDTP0RsPu'}).base('appPCPv2GlOfZ6wLe');
 
 /* CONSTANTS */
 const skillBuilder = Alexa.SkillBuilders.custom();
@@ -32,7 +32,7 @@ var dataEasy = [
     story: 'Seattle is also home to the amazon spheres, the space needle, and Macklemore', 
     level: 'easy'},
     
-    {quest: 'This is what acronym AWS stands for', 
+    {quest: 'This is what the acronym AWS stands for', 
     answer: ['amazon web services'], 
     story: 'AWS is the world\'s number 1 cloud service provider, with customers like Netflix and Facebook', 
     level: 'easy'},
@@ -121,11 +121,14 @@ const states = {
 /* INTENT HANDLERS */
 const LaunchRequestHandler = {
   canHandle(handlerInput) {
-    return (handlerInput.requestEnvelope.request.type === `LaunchRequest`) && askTeamsBool;
+    const attributes = handlerInput.attributesManager.getSessionAttributes();
+    return (handlerInput.requestEnvelope.request.type === `LaunchRequest`);
   },
   handle(handlerInput) {
-    const speechText = welcomeMessage
-    askTeamsBool = false;
+    const attributes = handlerInput.attributesManager.getSessionAttributes();
+    attributes.counter = 0;
+    handlerInput.attributesManager.setSessionAttributes(attributes);
+    const speechText = welcomeMessage;
     return handlerInput.responseBuilder
       .speak(speechText)
       .reprompt(helpMessage)
@@ -139,7 +142,7 @@ const QuizHandler = {
       const request = handlerInput.requestEnvelope.request;
       console.log("Inside QuizHandler");
       console.log(JSON.stringify(request));
-      return (request.type === "IntentRequest") && //askTeamsBool &&
+      return (request.type === "IntentRequest") &&
              (request.intent.name === "QuizIntent" || request.intent.name === "AMAZON.StartOverIntent");
     },
     handle(handlerInput) {
@@ -156,7 +159,7 @@ const QuizHandler = {
       
 
       attributes.state = states.QUIZ;
-      attributes.counter = 0;
+      
 
       //intialize scoring array for any number of players
       var quizScore = [];
@@ -192,10 +195,10 @@ const QuizHandler = {
     var question = askQuestion(handlerInput);
     speakOutput += question;
 
-    var repromptOutput = question;
+    handlerInput.attributesManager.setSessionAttributes(attributes);
   
     return response.speak(speakOutput)
-                    .reprompt(repromptOutput)
+                    .reprompt(helpMessage)
                     .getResponse();
     },
   };
@@ -207,7 +210,7 @@ const QuizHandler = {
       const request = handlerInput.requestEnvelope.request;
   
       return attributes.state === states.QUIZ &&
-             !finishedQuestionsBool &&
+      (attributes.counter <= (numRounds * attributes.numPlayers)) &&
              request.type === 'IntentRequest' &&
              request.intent.name === 'AnswerIntent';
     },
@@ -254,7 +257,7 @@ const QuizHandler = {
         .getResponse();
       }
       else {
-        finishedQuestionsBool = true;
+        attributes.counter += 1;
         handlerInput.attributesManager.setSessionAttributes(attributes);
         speakOutput += getFinalScore(attributes);
         return response.speak(speakOutput)
@@ -269,7 +272,7 @@ const QuizHandler = {
         const attributes = handlerInput.attributesManager.getSessionAttributes();
         const request = handlerInput.requestEnvelope.request;
 
-        return request.type === 'IntentRequest' && finishedQuestionsBool && request.intent.name === 'LeaderboardIntent';
+        return request.type === 'IntentRequest' && (attributes.counter == ((numRounds * attributes.numPlayers) + 1)) && request.intent.name === 'LeaderboardIntent';
     },
     async handle(handlerInput) {
         const attributesManager = handlerInput.attributesManager;
@@ -336,7 +339,7 @@ const QuizHandler = {
 
                             resolve(
                               
-                                `Posting your score to the leaderboard ` +
+                                `Posting your score to the leaderboard, ` +
                                     leaderName +
                                     `. You're in ` +
                                     place.toString() +
@@ -358,9 +361,6 @@ const QuizHandler = {
         const success = await postData(leaderName, highScore, userid);
     
         const speechText = await getAverage(recordCount, totalScore, userid, place, leaderName);
-        
-        finishedQuestionsBool = false; //ensures that leaderboardIntent is only triggered when all questions have been asked
-        askTeamsBool = true; //ensures that a number response doesn't start game over
 
         return handlerInput.responseBuilder.speak(speechText).getResponse();
     },
@@ -380,8 +380,6 @@ const QuizHandler = {
              );
     },
     handle(handlerInput) {
-      finishedQuestionsBool = false; //ensures that leaderboardIntent is only triggered when all questions have been asked
-      askTeamsBool = true; //ensures that a number response doesn't start game over
       return handlerInput.responseBuilder
         .speak(exitSkillMessage)
         .getResponse();
@@ -401,17 +399,24 @@ const QuizHandler = {
 
   const ErrorHandler = {
     canHandle() {
-      console.log("Inside ErrorHandler");
       return true;
     },
     handle(handlerInput, error) {
-      console.log("Inside ErrorHandler - handle");
-      console.log(`Error handled: ${JSON.stringify(error)}`);
-      console.log(`Handler Input: ${JSON.stringify(handlerInput)}`);
+      const attributes = handlerInput.attributesManager.getSessionAttributes();
+      var output = ``;
+      if (attributes.counter == 0){
+        output = helpMessageNum;
+      }else if ((attributes.counter <= (numRounds * attributes.numPlayers))){
+        output = helpMessage;
+      } else if (attributes.counter == ((numRounds * attributes.numPlayers) + 1)){
+        output = helpMessageName;
+      } else {
+        output = errorMessage;
+      }
   
       return handlerInput.responseBuilder
-        .speak(errorMessage)
-        .reprompt(errorMessage)
+        .speak(output)
+        .reprompt(output)
         .getResponse();
     },
   };
