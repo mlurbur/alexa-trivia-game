@@ -1,0 +1,217 @@
+{
+    "interactionModel": {
+        "languageModel": {
+            "invocationName": "intern trivia",
+            "intents": [
+                {
+                    "name": "AMAZON.CancelIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.HelpIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.PauseIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.StartOverIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.StopIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AnswerIntent",
+                    "slots": [
+                        {
+                            "name": "Person",
+                            "type": "AMAZON.Person"
+                        },
+                        {
+                            "name": "Business",
+                            "type": "AMAZON.LocalBusiness"
+                        },
+                        {
+                            "name": "Misc",
+                            "type": "Misc"
+                        },
+                        {
+                            "name": "City",
+                            "type": "AMAZON.City"
+                        },
+                        {
+                            "name": "State",
+                            "type": "AMAZON.US_STATE"
+                        },
+                        {
+                            "name": "Book",
+                            "type": "AMAZON.Book"
+                        }
+                    ],
+                    "samples": [
+                        "what is {Book}",
+                        "what is {State}",
+                        "what is {City}",
+                        "what is {Person}",
+                        "who is {Person}",
+                        "what is {Misc}",
+                        "what are {Misc}",
+                        "who is {Misc}",
+                        "what is {Business}",
+                        "{Book}",
+                        "{State}",
+                        "{City}",
+                        "{Person}",
+                        "{Misc}",
+                        "{Business}"
+                    ]
+                },
+                {
+                    "name": "QuizIntent",
+                    "slots": [
+                        {
+                            "name": "Number",
+                            "type": "AMAZON.NUMBER"
+                        }
+                    ],
+                    "samples": [
+                        "{Number} team",
+                        "{Number} teams",
+                        "{Number}"
+                    ]
+                },
+                {
+                    "name": "AMAZON.NavigateHomeIntent",
+                    "samples": []
+                },
+                {
+                    "name": "LeaderboardIntent",
+                    "slots": [
+                        {
+                            "name": "Name",
+                            "type": "AMAZON.FirstName"
+                        }
+                    ],
+                    "samples": [
+                        "{Name}"
+                    ]
+                }
+            ],
+            "types": [
+                {
+                    "name": "Misc",
+                    "values": [
+                        {
+                            "name": {
+                                "value": "2 pizza"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "2 pizzas"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "Pecy"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "Peccy"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "leadership principles"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "leadership principle"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "the kindle"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "amazon kindle"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "kindle"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "national landing"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "Earth's biggest book store"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "cadabra"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "two pizza"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "two pizzas"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "amazon web services"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "doors"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "a door"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "door"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "Amazon Go"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "Day One"
+                            }
+                        },
+                        {
+                            "name": {
+                                "value": "Day 1"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}
