@@ -4,11 +4,13 @@ A Jeopardy-style, multiplayer trivia game with a live leaderboard.
 
 ## Features:
 - **Single and multiplayer support**
-- 
+
+
 ![Alt text](images/start.png?raw=true "Title")
 
 - **Three rounds of Amazon trivia questions with progressive diffuculty**
-- 
+
+
 ![Alt text](images/mid_round.png?raw=true "Title")
 
 - **Posts scores to a live leaderboard and gives real-time ranking**
